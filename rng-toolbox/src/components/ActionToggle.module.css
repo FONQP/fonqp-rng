@@ -1,0 +1,49 @@
+/* ActionToggle.module.css */
+
+.icon {
+  position: absolute;
+  transition: opacity 0.2s ease;
+  width: 25px;
+  height: 25px;
+}
+
+.light {
+  display: block;
+}
+
+.dark {
+  display: none;
+}
+
+[data-mantine-color-scheme='dark'] .light {
+  display: none;
+}
+
+[data-mantine-color-scheme='dark'] .dark {
+  display: block;
+}
+
+.link {
+  width: 50px;
+  height: 50px;
+  border-radius: var(--mantine-radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
+  box-shadow: none;
+  position: relative; /* needed for icon stacking */
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.link:hover {
+  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-5));
+}
+
+.tooltip {
+  text-align: center;
+  font-size: var(--mantine-font-size-sm);
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
+  background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-5));
+  padding-top: 10px;
+}
