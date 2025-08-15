@@ -6,18 +6,20 @@ interface ButtonProgressProps {
   onCollect: () => void;
   collecting: boolean;
   percent: number;
+  className?: string;
 }
 
 export function ButtonProgress({
   onCollect,
   collecting,
   percent,
+  className,
 }: ButtonProgressProps) {
   const theme = useMantineTheme();
 
   return (
     <Button
-      className={classes.button}
+      className={`${classes.button} ${className}`}
       style={{ minWidth: 190, alignSelf: 'flex-start' }}
       onClick={onCollect}
       color={!collecting && percent === 100 ? 'teal' : theme.primaryColor}

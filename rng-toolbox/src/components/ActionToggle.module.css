@@ -30,7 +30,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
+  color: light-dark(var(--mantine-color-cyan-4), var(--mantine-color-dark-0));
   box-shadow: none;
   position: relative; /* needed for icon stacking */
   transition: background-color 0.2s ease, color 0.2s ease;

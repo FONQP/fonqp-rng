@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "rng-toolbox",
+        "title": "RNG Toolbox",
         "width": 800,
         "height": 600,
         "resizable": true,

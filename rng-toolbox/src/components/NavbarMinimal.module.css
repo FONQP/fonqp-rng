@@ -19,7 +19,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
+  color: light-dark(var(--mantine-color-cyan-4), var(--mantine-color-dark-0));
   box-shadow: none;
   transition: background-color 0.2s ease, color 0.2s ease;
 
@@ -30,8 +30,8 @@
   &[data-active] {
     &,
     &:hover {
-      background-color: var(--mantine-color-blue-light);
-      color: var(--mantine-color-blue-light-color);
+      background-color: light-dark(var(--mantine-color-lime-light), var(--mantine-color-dark-5));
+      color: light-dark(var(--mantine-color-lime-8), var(--mantine-color-dark-0));
     }
   }
 }
@@ -40,8 +40,6 @@
   text-align: center;
   font-size: var(--mantine-font-size-sm);
   color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
-  /* text color */
   background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-5));
-  /* background color */
   padding-top: 10px;
 }

@@ -1,0 +1,16 @@
+.title {
+    color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-0));
+    font-weight: 600;
+    line-height: var(--mantine-line-height-xl);
+}
+
+.button {
+    background-color: light-dark(var(--mantine-color-cyan-4), var(--mantine-color-dark-0));
+    color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-8));
+    /* hover */
+    &:hover {
+        background-color: light-dark(var(--mantine-color-cyan-5), var(--mantine-color-dark-1));
+        color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-6));
+    }
+    border-radius: 6px;
+}

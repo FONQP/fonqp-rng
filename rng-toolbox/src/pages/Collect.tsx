@@ -8,7 +8,7 @@ import {
   Box,
   ScrollArea,
   Paper,
-  Checkbox
+  Checkbox,
 } from '@mantine/core';
 import { useEffect, useRef, useState } from 'react';
 import { invoke, Channel } from '@tauri-apps/api/core';
@@ -22,6 +22,7 @@ import {
 } from '@tauri-apps/plugin-fs';
 import { save } from '@tauri-apps/plugin-dialog';
 import { ButtonProgress } from '../components/ButtonProgress';
+import classes from './Pages.module.css';
 
 const SETTINGS_FILE = 'collect_settings.json';
 
@@ -184,122 +185,125 @@ export default function Collect() {
   }, [outputLines]);
 
   return (
-    <Flex p="md" gap="md" style={{ flex: 1, height: '100%', overflow: 'hidden' }}>
-      <Stack gap="md" h="100%" style={{ width: '50%' }}>
-        <Title order={2}>Collect Data</Title>
+    <Stack gap="md" style={{ height: '100vh', padding: 20 }}>
+      <Title order={2} className={classes.title}>Collect Data</Title>
+      <Flex gap="md" style={{ flex: 1, overflow: 'hidden' }}>
+        <Stack gap="md" style={{ width: '50%', height: '100%', overflow: 'hidden' }}>
 
-        <Flex gap="md">
-          <Select
-            label="USB Port"
-            placeholder="Select a port"
-            data={usbPorts}
-            value={selectedPort}
-            onChange={setSelectedPort}
-            required
-            style={{ flex: 1 }}
-            checkIconPosition='right'
-            comboboxProps={{ transitionProps: { transition: 'pop', duration: 200 } }}
-          />
+          <Flex gap="md">
+            <Select
+              label="USB Port"
+              placeholder="Select a port"
+              data={usbPorts}
+              value={selectedPort}
+              onChange={setSelectedPort}
+              required
+              style={{ flex: 1 }}
+              checkIconPosition='right'
+              comboboxProps={{ transitionProps: { transition: 'pop', duration: 200 } }}
+            />
 
-          <TextInput
-            label="Baud Rate"
-            placeholder="e.g., 9600"
-            value={baudRate}
-            onChange={(e) => setBaudRate(e.currentTarget.value)}
-            required
-            style={{ flex: 1 }}
-          />
+            <TextInput
+              label="Baud Rate"
+              placeholder="e.g., 9600"
+              value={baudRate}
+              onChange={(e) => setBaudRate(e.currentTarget.value)}
+              required
+              style={{ flex: 1 }}
+            />
 
-          <Select
-            label="Output"
-            data={[
-              { value: 'screen', label: 'Screen' },
-              { value: 'file', label: 'File' },
-              { value: 'none', label: 'None' },
-            ]}
-            value={outputDest}
-            onChange={(val) => setOutputDest(val!)}
-            style={{ flex: 1 }}
-            checkIconPosition='right'
-            comboboxProps={{ transitionProps: { transition: 'pop', duration: 200 } }}
-          />
-        </Flex>
+            <Select
+              label="Output"
+              data={[
+                { value: 'screen', label: 'Screen' },
+                { value: 'file', label: 'File' },
+                { value: 'none', label: 'None' },
+              ]}
+              value={outputDest}
+              onChange={(val) => setOutputDest(val!)}
+              style={{ flex: 1 }}
+              checkIconPosition='right'
+              comboboxProps={{ transitionProps: { transition: 'pop', duration: 200 } }}
+            />
+          </Flex>
 
-        <Flex gap="md">
-          {outputDest === 'file' && (
-            <Flex gap="sm" align="end">
-              <TextInput
-                label="Save File Path"
-                value={filePath}
-                onChange={(e) => setFilePath(e.currentTarget.value)}
-                style={{ flex: 1 }}
-              />
-              <Button
-                variant="light"
-                onClick={async () => {
-                  try {
-                    const selected = await save({
-                      filters: [{ name: 'Text File', extensions: ['txt', 'csv'] }],
-                      title: 'Save Output File',
-                      defaultPath: 'output.txt',
-                    });
-                    if (selected) setFilePath(selected);
-                  } catch (err) {
-                    console.error('Save dialog failed:', err);
-                  }
-                }}
-              >
-                Browse
-              </Button>
-            </Flex>
+          <Flex gap="md">
+            {outputDest === 'file' && (
+              <Flex gap="sm" align="end">
+                <TextInput
+                  label="Save File Path"
+                  value={filePath}
+                  onChange={(e) => setFilePath(e.currentTarget.value)}
+                  style={{ flex: 1 }}
+                />
+                <Button
+                  variant="light"
+                  onClick={async () => {
+                    try {
+                      const selected = await save({
+                        filters: [{ name: 'Text File', extensions: ['txt', 'csv'] }],
+                        title: 'Save Output File',
+                        defaultPath: 'output.txt',
+                      });
+                      if (selected) setFilePath(selected);
+                    } catch (err) {
+                      console.error('Save dialog failed:', err);
+                    }
+                  }}
+                >
+                  Browse
+                </Button>
+              </Flex>
+            )}
+
+            <TextInput
+              label="Samples"
+              placeholder="e.g., 1000"
+              value={numSamples}
+              onChange={(e) => setNumSamples(e.currentTarget.value)}
+              required
+              style={{ alignSelf: 'flex-start' }}
+            />
+          </Flex>
+
+          {numSamples === '*' && (
+            <Checkbox
+              label="Pipe to OS Entropy Pool"
+              checked={entropyDirect}
+              onChange={(e) => setEntropyDirect(e.currentTarget.checked)}
+            />
           )}
 
-          <TextInput
-            label="Samples"
-            placeholder="e.g., 1000"
-            value={numSamples}
-            onChange={(e) => setNumSamples(e.currentTarget.value)}
-            required
-            style={{ alignSelf: 'flex-start' }}
+          <ButtonProgress
+            onCollect={handleCollectData}
+            collecting={collecting}
+            percent={percent}
+            className={classes.button}
           />
-        </Flex>
 
-        {numSamples === '*' && (
-          <Checkbox
-            label="Pipe to OS Entropy Pool"
-            checked={entropyDirect}
-            onChange={(e) => setEntropyDirect(e.currentTarget.checked)}
-          />
+        </Stack>
+
+        {outputDest === 'screen' && (
+          <Box flex={1} h="100%" style={{ display: 'flex', flexDirection: 'column', width: '50%' }}>
+            <Paper
+              withBorder
+              radius="md"
+              p="md"
+              style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}
+            >
+              <Title order={3} mb="xs" c={'gray'}>
+                Output Stream
+              </Title>
+
+              <ScrollArea h="100%" scrollbars="y" viewportRef={scrollRef}>
+                <Box component="pre" style={{ whiteSpace: 'pre-wrap' }}>
+                  {outputLines.join('\n')}
+                </Box>
+              </ScrollArea>
+            </Paper>
+          </Box>
         )}
-
-        <ButtonProgress
-          onCollect={handleCollectData}
-          collecting={collecting}
-          percent={percent}
-        />
-
-      </Stack>
-
-      {outputDest === 'screen' && (
-        <Box flex={1} h="100%" style={{ display: 'flex', flexDirection: 'column', width: '50%' }}>
-          <Title order={3} mb="xs">
-            Output Stream
-          </Title>
-
-          <Paper
-            withBorder
-            radius="md"
-            p="md"
-            style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}
-          >
-            <ScrollArea h="100%" scrollbars="y" viewportRef={scrollRef}>
-              <Box component="pre" style={{ whiteSpace: 'pre-wrap' }}>
-                {outputLines.join('\n')}
-              </Box>
-            </ScrollArea>
-          </Paper>
-        </Box>
-      )}
-    </Flex>
+      </Flex>
+    </Stack>
   );
 }

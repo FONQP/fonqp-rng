@@ -6,10 +6,10 @@ import {
     IconFlask2Filled,
     IconQrcode
 } from '@tabler/icons-react';
-import { Center, Stack, Tooltip, UnstyledButton } from '@mantine/core';
+import { Center, Stack, Tooltip, UnstyledButton, useMantineColorScheme } from '@mantine/core';
 import classes from './NavbarMinimal.module.css';
 import ThemeButton from './ThemeButton';
-import About from './About'; 
+import About from './About';
 
 interface NavbarLinkProps {
     icon: typeof IconHome;
@@ -29,7 +29,7 @@ function NavbarLink({ icon: Icon, label, active, onClick }: NavbarLinkProps) {
 }
 
 const mockdata = [
-    { icon: IconHome, label: 'Home' },
+    // { icon: IconHome, label: 'Home' },
     { icon: IconSocial, label: 'Collect' },
     { icon: IconFlask2Filled, label: 'Analyze' },
     { icon: IconQrcode, label: 'Applications' }
@@ -47,11 +47,16 @@ export default function Navbar({ activeIndex, onSectionChange }: { activeIndex: 
     ));
 
     const [opened, { open, close }] = useDisclosure(false);
+    const { colorScheme } = useMantineColorScheme();
+
+    const logoSrc = colorScheme === 'dark'
+        ? '/rng-logo-dark.png'   // processed image from Python script
+        : '/rng-logo.png';
 
     return (
         <nav className={classes.navbar}>
             <Center>
-                <img src="/rng-logo.png" alt="Logo" style={{ height: 30, width: "auto" }} />
+                <img src={logoSrc} alt="Logo" style={{ height: 30, width: "auto" }} />
             </Center>
 
 
