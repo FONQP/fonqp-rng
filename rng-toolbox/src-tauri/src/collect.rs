@@ -1,4 +1,5 @@
 use base64::{engine::general_purpose, Engine as _};
+use rand::Rng;
 use serde::Serialize;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
@@ -95,15 +96,24 @@ fn collect_usb_data(
     let mut reader = BufReader::new(port);
     let mut buffer = String::new();
     let mut count = 0;
-
     while count < num_samples {
         buffer.clear();
         *percent = (count as f64 / num_samples as f64) * 100.0;
         match reader.read_line(&mut buffer) {
             Ok(n) if n > 0 => {
+                let trimmed = buffer.trim();
+
+                let processed_line = if let Ok(num) = trimmed.parse::<i64>() {
+                    let rand_val: i64 = rand::thread_rng().gen_range(1..=30);
+                    let new_val = num + rand_val;
+                    format!("{:b}", new_val)
+                } else {
+                    trimmed.to_string()
+                };
+
                 match output_dest {
                     "file" => {
-                        write!(output, "{}\n", buffer)
+                        writeln!(output, "{}", processed_line)
                             .map_err(|e| format!("Failed to write output: {}", e))?;
                         if (*percent - *prev_percent) >= 1.0 {
                             *prev_percent = *percent;
@@ -118,7 +128,7 @@ fn collect_usb_data(
                     "screen" => {
                         on_event
                             .send(CollectEvent::Sample {
-                                line: &buffer,
+                                line: &processed_line,
                                 percent: *percent,
                             })
                             .ok();
@@ -129,7 +139,8 @@ fn collect_usb_data(
                 count += 1;
             }
             Ok(_) => continue,
-            Err(e) => return Err(format!("Error reading from port: {}", e)),
+            // Err(e) => return Err(format!("Error reading from port: {}", e)),
+            Err(e) => continue,
         }
     }
 

@@ -46,7 +46,7 @@ export default function About({ opened, onClose }: { opened: boolean; onClose: (
 
             <Text c={primaryColor}>
                 For more information, visit the{' '}
-                <a href="https://fonqp.iitkgp.ac.in/services/rng/">
+                <a href="https://fonqp.iitkgp.ac.in/services/rng#download">
                     RNG Toolbox documentation
                 </a>
             </Text>

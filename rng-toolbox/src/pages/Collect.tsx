@@ -76,7 +76,7 @@ export default function Collect() {
 
     const onEvent = new Channel<CollectEvent>();
 
-    const MAX_VISIBLE_LINES = 50;
+    const MAX_VISIBLE_LINES = 500;
 
     onEvent.onmessage = (message) => {
       switch (message.event) {
@@ -296,8 +296,8 @@ export default function Collect() {
               </Title>
 
               <ScrollArea h="100%" scrollbars="y" viewportRef={scrollRef}>
-                <Box component="pre" style={{ whiteSpace: 'pre-wrap' }}>
-                  {outputLines.join('\n')}
+                <Box component="pre" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                  {outputLines.join('')}
                 </Box>
               </ScrollArea>
             </Paper>

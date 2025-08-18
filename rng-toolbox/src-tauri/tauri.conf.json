@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "rng-toolbox",
+  "productName": "RNG Toolbox",
   "version": "0.1.0",
   "identifier": "com.prasanna.rng-toolbox",
   "build": {

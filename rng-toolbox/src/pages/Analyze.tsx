@@ -10,15 +10,15 @@ import {
     Paper
 } from '@mantine/core';
 import { useEffect, useRef, useState } from 'react';
-import { invoke, Channel } from '@tauri-apps/api/core';
-import {
-    writeTextFile,
-    readTextFile,
-    create,
-    BaseDirectory,
-    mkdir,
-    exists
-} from '@tauri-apps/plugin-fs';
+// import { invoke, Channel } from '@tauri-apps/api/core';
+// import {
+//     writeTextFile,
+//     readTextFile,
+//     create,
+//     BaseDirectory,
+//     mkdir,
+//     exists
+// } from '@tauri-apps/plugin-fs';
 import { save } from '@tauri-apps/plugin-dialog';
 import classes from './Pages.module.css';
 
@@ -28,7 +28,7 @@ export default function Analyze() {
     const [outputDest, setOutputDest] = useState('screen');
     const [filePath, setFilePath] = useState('');
     const scrollRef = useRef<HTMLDivElement>(null);
-    const [outputLines, setOutputLines] = useState<string[]>([]);
+    const [outputLines] = useState<string[]>([]);
 
 
     useEffect(() => {
