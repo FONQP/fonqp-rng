@@ -1,10 +1,15 @@
-use base64::{engine::general_purpose, Engine as _};
-use rand::Rng;
+use nix::libc::ioctl;
 use serde::Serialize;
+use std::fmt::Write as FmtWrite;
 use std::fs::File;
+use std::fs::OpenOptions;
 use std::io::{BufRead, BufReader, Write};
+use std::os::raw::c_int;
+use std::os::unix::io::AsRawFd;
 use std::time::Duration;
 use tauri::ipc::Channel;
+
+const RNDADDENTROPY: u64 = 0x40085203;
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase", tag = "event", content = "data")]
@@ -17,7 +22,13 @@ pub enum CollectEvent<'a> {
 fn get_entropy_sample() -> Result<String, getrandom::Error> {
     let mut buf = [0u8; 32];
     getrandom::fill(&mut buf)?;
-    Ok(general_purpose::STANDARD.encode(&buf))
+
+    let mut bits = String::with_capacity(buf.len() * 8);
+    for byte in buf {
+        write!(&mut bits, "{:08b}", byte).unwrap();
+    }
+
+    Ok(bits)
 }
 
 fn collect_os_entropy(
@@ -84,6 +95,7 @@ fn collect_usb_data(
     output_dest: &str,
     percent: &mut f64,
     prev_percent: &mut f64,
+    entropy_direct: bool,
 ) -> Result<(), String> {
     let baud_rate: u32 = baud_rate
         .parse()
@@ -92,6 +104,16 @@ fn collect_usb_data(
         .timeout(Duration::from_secs(5))
         .open()
         .map_err(|e| format!("Failed to open port {}: {}", port_name, e))?;
+
+    let fd = if entropy_direct {
+        let f = OpenOptions::new()
+            .write(true)
+            .open("/dev/random")
+            .map_err(|e| format!("Failed to open /dev/random: {}", e))?;
+        Some(f.as_raw_fd())
+    } else {
+        None
+    };
 
     let mut reader = BufReader::new(port);
     let mut buffer = String::new();
@@ -103,17 +125,9 @@ fn collect_usb_data(
             Ok(n) if n > 0 => {
                 let trimmed = buffer.trim();
 
-                let processed_line = if let Ok(num) = trimmed.parse::<i64>() {
-                    let rand_val: i64 = rand::thread_rng().gen_range(1..=30);
-                    let new_val = num + rand_val;
-                    format!("{:b}", new_val)
-                } else {
-                    trimmed.to_string()
-                };
-
                 match output_dest {
                     "file" => {
-                        writeln!(output, "{}", processed_line)
+                        writeln!(output, "{}", trimmed)
                             .map_err(|e| format!("Failed to write output: {}", e))?;
                         if (*percent - *prev_percent) >= 1.0 {
                             *prev_percent = *percent;
@@ -128,7 +142,7 @@ fn collect_usb_data(
                     "screen" => {
                         on_event
                             .send(CollectEvent::Sample {
-                                line: &processed_line,
+                                line: &trimmed,
                                 percent: *percent,
                             })
                             .ok();
@@ -136,11 +150,32 @@ fn collect_usb_data(
                     "none" => {}
                     _ => return Err("Invalid output destination".to_string()),
                 }
+
+                if entropy_direct {
+                    let mut info = RandPoolInfo {
+                        entropy_count: (trimmed.len() * 8) as c_int,
+                        buf_size: trimmed.len() as c_int,
+                        buf: [0u8; 16],
+                    };
+                    for (i, b) in info.buf.iter_mut().enumerate().take(trimmed.len()) {
+                        *b = trimmed.as_bytes()[i];
+                    }
+                    let res = unsafe { ioctl(fd.unwrap(), RNDADDENTROPY, &info) };
+                    if res < 0 {
+                        on_event
+                            .send(CollectEvent::Error {
+                                message: "Failed to add entropy to OS pool",
+                            })
+                            .ok();
+                        return Err("Failed to add entropy to OS pool".to_string());
+                    }
+                }
+
                 count += 1;
             }
             Ok(_) => continue,
             // Err(e) => return Err(format!("Error reading from port: {}", e)),
-            Err(e) => continue,
+            Err(_) => continue,
         }
     }
 
@@ -156,7 +191,7 @@ pub fn collect_data(
     output_dest: String,
     num_samples: String,
     file_path: Option<String>,
-    _entropy_direct: bool,
+    entropy_direct: bool,
     on_event: Channel<CollectEvent>,
 ) -> Result<(), String> {
     let num_samples: usize = num_samples
@@ -196,8 +231,16 @@ pub fn collect_data(
             &output_dest,
             &mut percent,
             &mut prev_percent,
+            entropy_direct,
         );
     } else {
         Err("Port not specified".to_string())
     }
+}
+
+#[repr(C)]
+struct RandPoolInfo {
+    entropy_count: c_int,
+    buf_size: c_int,
+    buf: [u8; 16],
 }

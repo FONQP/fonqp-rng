@@ -25,6 +25,7 @@
     {
       "identifier": "fs:allow-appconfig-read"
     },
-    "dialog:default"
+    "dialog:default",
+    "shell:default"
   ]
 }

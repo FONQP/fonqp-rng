@@ -10,7 +10,7 @@ import {
     Paper
 } from '@mantine/core';
 import { useEffect, useRef, useState } from 'react';
-// import { invoke, Channel } from '@tauri-apps/api/core';
+import { invoke } from '@tauri-apps/api/core';
 // import {
 //     writeTextFile,
 //     readTextFile,
@@ -124,12 +124,14 @@ export default function Analyze() {
                             try {
                                 const selected = await save({
                                     filters: [{ name: 'Text File', extensions: ['txt', 'csv'] }],
-                                    title: 'Load Output File',
+                                    title: 'Save to Output File',
                                     defaultPath: 'output.txt',
                                 });
                                 if (selected) setFilePath(selected);
+
+                                await invoke('run_nist_sts', { inputFile: filePath, outputFile: selected });
                             } catch (err) {
-                                console.error('Load dialog failed:', err);
+                                console.error('Save dialog failed:', err);
                             }
                         }}
                         className={classes.button}

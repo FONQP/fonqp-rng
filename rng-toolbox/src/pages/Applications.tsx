@@ -1,4 +1,4 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import {
     Button,
     NumberInput,
@@ -9,10 +9,23 @@ import {
     SimpleGrid,
     Box,
 } from '@mantine/core';
+import { invoke } from '@tauri-apps/api/core';
 import { motion } from 'framer-motion';
 import classes from './Pages.module.css';
+import { loadSettings } from '../components/Settings';
+import Crypto from '../components/Crypto';
 
 export default function Applications() {
+    // Load settings
+    const [settings, setSettings] = useState<any>(null);
+    useEffect(() => {
+        async function fetchSettings() {
+            const s = await loadSettings();
+            setSettings(s);
+        }
+        fetchSettings();
+    }, []);
+
     // Coin Flip States
     const [flipping, setFlipping] = useState(false);
     const [coinResult, setCoinResult] = useState<'Heads' | 'Tails' | null>(null);
@@ -28,23 +41,24 @@ export default function Applications() {
     const [generatedOtp, setGeneratedOtp] = useState<string | null>(null);
 
     // Coin flip logic
-    const flipCoin = () => {
+    const flipCoin = async () => {
         setFlipping(true);
-        const result = Math.random() < 0.5 ? 'Heads' : 'Tails';
+        const result = await invoke<number>('generate_random_number', { start: 0, end: 2, port: settings.port, baudRate: settings.baudRate });
+        const coinSide = result % 2 === 0 ? 'Heads' : 'Tails';
         setTimeout(() => {
             setFlipping(false);
-            setCoinResult(result);
+            setCoinResult(coinSide);
         }, 1500); // Animation duration
     };
 
     // Random number generator logic
-    const generateRandomNumber = () => {
+    const generateRandomNumber = async () => {
         if (typeof start !== 'number' || typeof end !== 'number' || start >= end) {
             setRandomNumber('Invalid input');
             return;
         }
 
-        const value = Math.floor(Math.random() * (end - start + 1)) + start;
+        const value = await invoke<number>('generate_random_number', { start, end, port: settings.port, baudRate: settings.baudRate });
         const formatted = value.toString(base);
         setRandomNumber(
             <>
@@ -54,8 +68,12 @@ export default function Applications() {
     };
 
     // OTP generation logic
-    const generateOtp = () => {
-        const otp = Math.random().toString().slice(2, 2 + otpLength);
+    const generateOtp = async () => {
+        let otp = '';
+        for (let i = 0; i < otpLength; i++) {
+            const digit = await invoke<number>('generate_random_number', { start: 0, end: 10, port: settings.port, baudRate: settings.baudRate });
+            otp += digit.toString();
+        }
         setGeneratedOtp(otp);
     };
 
@@ -65,7 +83,7 @@ export default function Applications() {
             <SimpleGrid
                 cols={3}
                 spacing="md"
-                style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}
+                style={{ flex: 1, overflow: 'hidden', minHeight: 0, gridTemplateRows: '40% 60%' }}
             >
                 <Box
                     style={{
@@ -184,9 +202,30 @@ export default function Applications() {
                     </Stack>
                 </Box>
 
-                <Box />
-                <Box />
-                <Box />
+                <Box
+                    style={{
+                        gridColumn: '1 / span 3',   // span across all 3 columns
+                        display: 'flex',
+                        flexDirection: 'column',
+                        flex: 1,
+                        overflow: 'hidden',
+                    }}
+                >
+                    <Title order={2} style={{ textAlign: 'center', marginBottom: 12 }}>
+                        Cryptography
+                    </Title>
+                    <Box
+                        style={{
+                            display: 'flex',
+                            flex: 1,
+                            overflow: 'hidden',
+                        }}
+                    >
+                        <Crypto settings={settings} />
+                    </Box>
+                </Box>
+
+
             </SimpleGrid>
         </Stack>
     );
