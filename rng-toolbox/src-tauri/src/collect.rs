@@ -1,13 +1,15 @@
-use nix::libc::ioctl;
 use serde::Serialize;
 use std::fmt::Write as FmtWrite;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::{BufRead, BufReader, Write};
 use std::os::raw::c_int;
-use std::os::unix::io::AsRawFd;
 use std::time::Duration;
 use tauri::ipc::Channel;
+
+#[cfg(target_os = "linux")]
+use nix::libc::ioctl;
+use std::os::unix::io::AsRawFd;
 
 const RNDADDENTROPY: u64 = 0x40085203;
 
@@ -105,15 +107,26 @@ fn collect_usb_data(
         .open()
         .map_err(|e| format!("Failed to open port {}: {}", port_name, e))?;
 
-    let fd = if entropy_direct {
-        let f = OpenOptions::new()
-            .write(true)
-            .open("/dev/random")
-            .map_err(|e| format!("Failed to open /dev/random: {}", e))?;
-        Some(f.as_raw_fd())
+    let random_file = if entropy_direct {
+        #[cfg(target_os = "linux")]
+        {
+            Some(
+                OpenOptions::new()
+                    .write(true)
+                    .open("/dev/random")
+                    .map_err(|e| format!("Failed to open /dev/random: {}", e))?,
+            )
+        }
+
+        #[cfg(not(target_os = "linux"))]
+        {
+            None
+        }
     } else {
         None
     };
+
+    let fd = random_file.as_ref().map(|f| f.as_raw_fd());
 
     let mut reader = BufReader::new(port);
     let mut buffer = String::new();
@@ -152,22 +165,25 @@ fn collect_usb_data(
                 }
 
                 if entropy_direct {
-                    let mut info = RandPoolInfo {
-                        entropy_count: (trimmed.len() * 8) as c_int,
-                        buf_size: trimmed.len() as c_int,
-                        buf: [0u8; 16],
-                    };
-                    for (i, b) in info.buf.iter_mut().enumerate().take(trimmed.len()) {
-                        *b = trimmed.as_bytes()[i];
-                    }
-                    let res = unsafe { ioctl(fd.unwrap(), RNDADDENTROPY, &info) };
-                    if res < 0 {
-                        on_event
-                            .send(CollectEvent::Error {
-                                message: "Failed to add entropy to OS pool",
-                            })
-                            .ok();
-                        return Err("Failed to add entropy to OS pool".to_string());
+                    #[cfg(target_os = "linux")]
+                    {
+                        let mut info = RandPoolInfo {
+                            entropy_count: (trimmed.len() * 8) as c_int,
+                            buf_size: trimmed.len() as c_int,
+                            buf: [0u8; 16],
+                        };
+                        for (i, b) in info.buf.iter_mut().enumerate().take(trimmed.len()) {
+                            *b = trimmed.as_bytes()[i];
+                        }
+                        let res = unsafe { ioctl(fd.unwrap(), RNDADDENTROPY, &info) };
+                        if res < 0 {
+                            on_event
+                                .send(CollectEvent::Error {
+                                    message: "Failed to add entropy to OS pool",
+                                })
+                                .ok();
+                            return Err("Failed to add entropy to OS pool".to_string());
+                        }
                     }
                 }
 
